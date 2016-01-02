@@ -18,8 +18,15 @@ object MacroImpl {
       case _ => c.abort(c.enclosingPosition, "the annotation can only be used with case classes")
     }
 
+    val getWriteMethodName = (t: c.universe.Tree) => t match {
+      case tq"String" => "writeString"
+      case tq"Int" => "writeInt32"
+      case _ => c.abort(c.enclosingPosition, "this field type is not supported")
+    }
+
     val getWriter = (d: ValDef) => {
-      q"""bsonWriter.writeString(${Literal(Constant(d.name.toString))}, t.${TermName(d.name.toString)})"""
+      val method = TermName(getWriteMethodName(d.tpt))
+      q"""bsonWriter.$method(${Literal(Constant(d.name.toString))}, t.${TermName(d.name.toString)})"""
     }
 
     val objName = TermName(className.toString)

@@ -11,7 +11,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 @CreateCodec
-case class TestClass(username: String)
+case class TestClass(username: String, age: Int)
 
 object Hello {
 
@@ -42,7 +42,7 @@ object Hello {
 
     val users = client.getDatabase("test").getCollection[TestClass]("users")
 
-    val res = Await.result(users.insertOne(TestClass("Test user")).toFuture(), Duration(10, "second"))
+    val res = Await.result(users.insertOne(TestClass("Test name", 30)).toFuture(), Duration(10, "second"))
 
     client.close()
 
