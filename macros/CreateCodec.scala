@@ -18,12 +18,25 @@ object MacroImpl {
       case _ => c.abort(c.enclosingPosition, "the annotation can only be used with case classes")
     }
 
+    val getWriter = (d: ValDef) => q"bsonWriter.write($d)"
+
     val objName = TermName(className.toString)
+    val writers = classParams.asInstanceOf[List[ValDef]].map(getWriter)
 
     c.Expr[Unit](
       q"""case class $className(..$classParams)
           object $objName {
-            class Codec()
+            class MongoCodec() extends Codec[$className] {
+              override def getEncoderClass: Class[$className] = classOf[$className]
+
+              override def decode(bsonReader: BsonReader, decoderContext: DecoderContext): $className = {
+                new $className()
+              }
+
+              override def encode(bsonWriter: BsonWriter, t: TestClass, encoderContext: EncoderContext): Unit = {
+                ..$writers
+              }
+            }
           }""")
   }
 }
