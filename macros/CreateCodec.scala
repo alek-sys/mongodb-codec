@@ -18,7 +18,9 @@ object MacroImpl {
       case _ => c.abort(c.enclosingPosition, "the annotation can only be used with case classes")
     }
 
-    val getWriter = (d: ValDef) => q"bsonWriter.write($d)"
+    val getWriter = (d: ValDef) => {
+      q"""bsonWriter.writeString(${Literal(Constant(d.name.toString))}, t.${TermName(d.name.toString)})"""
+    }
 
     val objName = TermName(className.toString)
     val writers = classParams.asInstanceOf[List[ValDef]].map(getWriter)
@@ -30,11 +32,13 @@ object MacroImpl {
               override def getEncoderClass: Class[$className] = classOf[$className]
 
               override def decode(bsonReader: BsonReader, decoderContext: DecoderContext): $className = {
-                new $className()
+                null
               }
 
               override def encode(bsonWriter: BsonWriter, t: TestClass, encoderContext: EncoderContext): Unit = {
+                bsonWriter.writeStartDocument()
                 ..$writers
+                bsonWriter.writeEndDocument()
               }
             }
           }""")
