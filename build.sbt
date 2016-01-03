@@ -5,9 +5,7 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Seq(
   logLevel := Level.Error,
 
   resolvers += Resolver.sonatypeRepo("snapshots"),
-  resolvers += Resolver.sonatypeRepo("releases"),
-  
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  resolvers += Resolver.sonatypeRepo("releases")
 )
 
 lazy val macros = project.

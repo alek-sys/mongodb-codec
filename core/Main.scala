@@ -3,15 +3,14 @@ import com.mongodb.ServerAddress
 import com.mongodb.connection.{ClusterConnectionMode, ClusterType, ClusterSettings}
 import org.bson.{BsonWriter, BsonReader}
 import org.bson.codecs.{EncoderContext, DecoderContext, Codec}
-import org.bson.codecs.configuration.{CodecRegistries, CodecRegistry}
+import org.bson.codecs.configuration.{CodecRegistries}
 import org.mongodb.scala.{MongoClientSettings, MongoClient}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-@CreateCodec
-case class TestClass(username: String, age: Int)
+case class User(username: String, age: Int)
 
 object Hello {
 
@@ -35,14 +34,20 @@ object Hello {
       .build()
   }
 
+  def main(args: Array[String]): Unit = {
 
-  def main(args: Array[String]) = {
-    val clientSettings = getClientSettings(new TestClass.MongoCodec())
+    val codec = MongoCodecProvider.getCodec[User]()
+
+    val clientSettings = getClientSettings(codec)
     val client = MongoClient(clientSettings)
 
-    val users = client.getDatabase("test").getCollection[TestClass]("users")
+    val users = client.getDatabase("test").getCollection[User]("users")
 
-    val res = Await.result(users.insertOne(TestClass("Test name", 30)).toFuture(), Duration(10, "second"))
+    Await.result(users.insertOne(User(age = 30, username = "Test name")).toFuture(), Duration(10, "second"))
+
+    val found = Await.result(users.find[User]().toFuture(), Duration(10, "second")).head
+
+    println(s"User is ${found.username}")
 
     client.close()
 
