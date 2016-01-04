@@ -36,7 +36,7 @@ object MongoCodecProvider {
     val codecClassName = TypeName(className.toString + "Codec")
 
     c.Expr[Any](
-      q""" class $codecClassName extends Codec[$className] {
+      q""" new Codec[$className] {
             override def decode(reader: BsonReader, decoderContext: DecoderContext): $className = {
               reader.readStartDocument()
               reader.readObjectId()
@@ -52,8 +52,6 @@ object MongoCodecProvider {
             }
             override def getEncoderClass: Class[$className] = classOf[$className]
            }
-
-           new $codecClassName()
        """)
   }
 }
