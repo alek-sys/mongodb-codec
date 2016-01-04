@@ -14,10 +14,10 @@ object MongoCodecProvider {
       case m: MethodSymbol if m.isGetter && m.isPublic => m
     } toList
 
-    val methodTypePostfix = (f: MethodSymbol) => f.returnType.toString match {
-      case "Long" => "Int64"
-      case "Int" => "Int32"
-      case "String" => "String"
+    val methodTypePostfix = (f: MethodSymbol) => f.returnType match {
+      case t if t =:= typeOf[Long] => "Int64"
+      case t if t =:= typeOf[Int] => "Int32"
+      case t if t =:= typeOf[String] => "String"
     }
 
     val writers = fields map(f => {
