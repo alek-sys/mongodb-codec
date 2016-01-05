@@ -1,3 +1,5 @@
+import java.util.Date
+
 import com.alexnesterov._
 import com.mongodb.ServerAddress
 import com.mongodb.connection.{ClusterConnectionMode, ClusterType, ClusterSettings}
@@ -11,9 +13,9 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-case class User(username: String, age: Int)
+case class User(username: String, age: Int, DOB: Date, hobbies: java.util.List[String])
 
-object Hello {
+object Core {
 
   val clusterSettings: ClusterSettings =
     ClusterSettings.builder()
@@ -36,17 +38,21 @@ object Hello {
   }
 
   def main(args: Array[String]): Unit = {
-
-    val documentCodec = MongoClient.DEFAULT_CODEC_REGISTRY.get(classOf[Document])
-
-    val codec = MongoCodecProvider.getCodec[User](documentCodec)
+    val codec = MongoCodecProvider.getCodec[User]()
 
     val clientSettings = getClientSettings(codec)
     val client = MongoClient(clientSettings)
 
     val users = client.getDatabase("test").getCollection[User]("users")
 
-    Await.result(users.insertOne(User(age = 30, username = "Test name")).toFuture(), Duration(10, "second"))
+    Await.result(
+      users.insertOne(
+        User(
+          age = 30,
+          username = "Test name",
+          DOB = new Date(),
+          hobbies = List[String]("hiking", "music").asJava))
+      .toFuture(), Duration(10, "second"))
 
     val found = Await.result(users.find[User]().toFuture(), Duration(10, "second")).head
     println(s"User is ${found.username}")

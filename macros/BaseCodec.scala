@@ -3,8 +3,11 @@ package com.alexnesterov
 import org.bson.{BsonWriter, BsonReader}
 import org.bson.codecs.{EncoderContext, DecoderContext, Codec}
 import org.bson.Document
+import org.mongodb.scala.MongoClient
 
 abstract class BaseCodec[T](documentCodec: Codec[Document]) extends Codec[T] {
+  def this() = this(MongoClient.DEFAULT_CODEC_REGISTRY.get(classOf[Document]))
+
   def getInstance(document: Document): T
   def getDocument(instance: T): Document
 
