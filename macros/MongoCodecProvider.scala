@@ -28,7 +28,6 @@ object MongoCodecProvider {
     }
 
     val className = weakTypeOf[T].typeSymbol.name.toTypeName
-    val codecClassName = TypeName(className.toString + "Codec")
 
     c.Expr[Any](
       q""" new BaseCodec[$className]() {
