@@ -1,7 +1,8 @@
 import com.alexnesterov._
 import com.mongodb.ServerAddress
 import com.mongodb.connection.{ClusterConnectionMode, ClusterType, ClusterSettings}
-import org.bson.{BsonWriter, BsonReader}
+import org.bson.types.ObjectId
+import org.bson.{BsonWriter, BsonReader, Document}
 import org.bson.codecs.{EncoderContext, DecoderContext, Codec}
 import org.bson.codecs.configuration.{CodecRegistries}
 import org.mongodb.scala.{MongoClientSettings, MongoClient}
@@ -36,7 +37,9 @@ object Hello {
 
   def main(args: Array[String]): Unit = {
 
-    val codec = MongoCodecProvider.getCodec[User]()
+    val documentCodec = MongoClient.DEFAULT_CODEC_REGISTRY.get(classOf[Document])
+
+    val codec = MongoCodecProvider.getCodec[User](documentCodec)
 
     val clientSettings = getClientSettings(codec)
     val client = MongoClient(clientSettings)
@@ -46,7 +49,6 @@ object Hello {
     Await.result(users.insertOne(User(age = 30, username = "Test name")).toFuture(), Duration(10, "second"))
 
     val found = Await.result(users.find[User]().toFuture(), Duration(10, "second")).head
-
     println(s"User is ${found.username}")
 
     client.close()

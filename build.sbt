@@ -9,13 +9,14 @@ lazy val commonSettings = Defaults.coreDefaultSettings ++ Seq(
 )
 
 lazy val macros = project.
-  settings(commonSettings: _*).
+  settings(commonSettings).
   settings(
+    libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "1.1.0",
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
   )
 
 lazy val core = project.
-  settings(commonSettings: _*).
+  settings(commonSettings).
   settings(
     libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "1.1.0"
   ).dependsOn(macros)

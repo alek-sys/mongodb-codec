@@ -1,13 +1,16 @@
 package com.alexnesterov
 
+import org.bson.Document
+import org.bson.codecs.Codec
+
 import scala.reflect.macros.whitebox
 import scala.language.experimental.macros
 
 object MongoCodecProvider {
 
-  def getCodec[T](): Any = macro MongoCodecProvider.getCodecImpl[T]
+  def getCodec[T](documentCodec: Codec[Document]): Any = macro MongoCodecProvider.getCodecImpl[T]
 
-  def getCodecImpl[T: c.WeakTypeTag](c: whitebox.Context)(): c.Expr[Any] = {
+  def getCodecImpl[T: c.WeakTypeTag](c: whitebox.Context)(documentCodec: c.Expr[Codec[Document]]): c.Expr[Any] = {
     import c.universe._
 
     val fields = weakTypeOf[T].members.collect {
@@ -18,37 +21,32 @@ object MongoCodecProvider {
       case t if t =:= typeOf[Long] => "Int64"
       case t if t =:= typeOf[Int] => "Int32"
       case t if t =:= typeOf[String] => "String"
+      case _ => c.abort(c.enclosingPosition, s"field of given type is not supported")
     }
 
-    val writers = fields map(f => {
-      val methodName = TermName(s"write${methodTypePostfix(f)}")
-      q"""writer.$methodName(${Literal(Constant(f.name.toString))}, value.${f.name})  """
-    })
+    val keyName = (term: TermName) => Literal(Constant(term.toString))
 
-    val readers = fields map(f => {
-      val methodName = TermName(s"read${methodTypePostfix(f)}")
-      val fieldName = Literal(Constant(f.name.toString))
-      val paramName = f.name.toTermName
-      q""" $paramName = reader.$methodName($fieldName) """
-    })
+    val writers = fields map { f =>
+      q""" document.put(${keyName(f.name)}, instance.${f.name})  """
+    }
+
+    val readers = fields map { f =>
+      q""" ${f.name} = document.get(${keyName(f.name)}).asInstanceOf[${f.returnType}] """
+    }
 
     val className = weakTypeOf[T].typeSymbol.name.toTypeName
     val codecClassName = TypeName(className.toString + "Codec")
 
     c.Expr[Any](
-      q""" new Codec[$className] {
-            override def decode(reader: BsonReader, decoderContext: DecoderContext): $className = {
-              reader.readStartDocument()
-              reader.readObjectId()
-              val result = new $className(..$readers)
-              reader.readEndDocument()
-
-              result
+      q""" new BaseCodec[$className](documentCodec) {
+            def getInstance(document: Document): $className = {
+              new $className(..$readers)
             }
-            override def encode(writer: BsonWriter, value: $className, encoderContext: EncoderContext): Unit = {
-              writer.writeStartDocument()
+
+            def getDocument(instance: $className): Document = {
+              val document = new Document()
               ..$writers
-              writer.writeEndDocument()
+              document
             }
             override def getEncoderClass: Class[$className] = classOf[$className]
            }
