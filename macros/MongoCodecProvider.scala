@@ -32,19 +32,11 @@ object MongoCodecProvider {
     def getDocumentMethodName(t:Type) = TermName("getDocument" + t.typeSymbol.name.toString)
     def getInstanceMethodName(t:Type) = TermName("getInstance" + t.typeSymbol.name.toString)
 
-    def getCaseClassMethod(cls: c.universe.MethodSymbol): Tree = {
-      q"document.put(${keyName(cls.name)}, ${getDocumentMethodName(cls.returnType)}(instance.${cls.name}))"
-    }
-
-    def getValueMethod(v: c.universe.MethodSymbol): Tree = {
-      q"document.put(${keyName(v.name)}, instance.${v.name})"
-    }
-
     def getDocumentMethod(t: c.Type): c.Tree = {
       val methodName = getDocumentMethodName(t)
       val putOps = getFields(t) map {
-        case c if isCaseClass(c.returnType) => getCaseClassMethod(c)
-        case v => getValueMethod(v)
+        case cls if isCaseClass(cls.returnType) => q"document.put(${keyName(cls.name)}, ${getDocumentMethodName(cls.returnType)}(instance.${cls.name}))"
+        case v => q"document.put(${keyName(v.name)}, instance.${v.name})"
       }
 
       q"""def $methodName(instance: ${t.typeSymbol.asType.name}): Document = {
