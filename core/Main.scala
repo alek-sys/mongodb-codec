@@ -14,7 +14,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 case class Contacts(phone: String)
-case class User(username: String, age: Int, DOB: Date, hobbies: java.util.List[String], contacts: Contacts, contact2: Contacts)
+case class User(username: String, age: Int, DateOfBirth: Date, hobbies: java.util.List[String], contacts: Contacts, contact2: Contacts)
 
 object Core {
 
@@ -51,14 +51,14 @@ object Core {
         User(
           age = 30,
           username = "Test name",
-          DOB = new Date(),
+          DateOfBirth = new Date(),
           hobbies = List[String]("hiking", "music").asJava,
           contacts = new Contacts("123 12314"),
           contact2 = new Contacts("234 234234")))
       .toFuture(), Duration(10, "second"))
 
-    //val found = Await.result(users.find[User]().toFuture(), Duration(10, "second")).head
-    //println(s"User is ${found.username}")
+    val found = Await.result(users.find[User]().toFuture(), Duration(10, "second")).head
+    println(s"User is ${found.username}")
 
     client.close()
 

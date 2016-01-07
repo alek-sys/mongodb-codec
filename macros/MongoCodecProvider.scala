@@ -29,12 +29,8 @@ object MongoCodecProvider {
       getFields(t) map({_.returnType}) filter(isCaseClass)
     }
 
-    def getInstanceMethods(types: List[Type]): Tree = {
-
-      q"()"
-    }
-
     def getDocumentMethodName(t:Type) = TermName("getDocument" + t.typeSymbol.name.toString)
+    def getInstanceMethodName(t:Type) = TermName("getInstance" + t.typeSymbol.name.toString)
 
     def getCaseClassMethod(cls: c.universe.MethodSymbol): Tree = {
       q"document.put(${keyName(cls.name)}, ${getDocumentMethodName(cls.returnType)}(instance.${cls.name}))"
@@ -46,11 +42,11 @@ object MongoCodecProvider {
 
     def getDocumentMethod(t: c.Type): c.Tree = {
       val methodName = getDocumentMethodName(t)
-      val fields = getFields(t)
-      val putOps = fields.map{
+      val putOps = getFields(t) map {
         case c if isCaseClass(c.returnType) => getCaseClassMethod(c)
         case v => getValueMethod(v)
       }
+
       q"""def $methodName(instance: ${t.typeSymbol.asType.name}): Document = {
             val document = new Document()
             ..$putOps
@@ -59,18 +55,40 @@ object MongoCodecProvider {
        """
     }
 
+    def getInstanceMethod(t: c.Type): c.Tree = {
+      val methodName = getInstanceMethodName(t)
+      val getOps = getFields(t) map { f =>
+        val key = keyName(f.name)
+        val accessor = f.name
+        val getterMethodName = getInstanceMethodName(f.returnType)
+        val getter = f match {
+          case c if isCaseClass(c.returnType) => q"$getterMethodName(document.get($key).asInstanceOf[Document])"
+          case v => q"document.get($key).asInstanceOf[${f.returnType}]"
+        }
+
+        q"$accessor = $getter"
+      }
+
+      q"""def $methodName(document: Document): ${t} = {
+            new ${t.resultType}(..$getOps)
+         }
+       """
+    }
+
     val allClasses = (mainType :: getCaseClasses(mainType)).distinct
 
     val getDocumentMethods = for( c <- allClasses) yield getDocumentMethod(c)
+    val getInstanceMethods = for( c <- allClasses) yield getInstanceMethod(c)
 
     val className = mainType.typeSymbol.name.toTypeName
 
     c.Expr[Any](
       q""" new BaseCodec[$className]() {
             ..$getDocumentMethods
+            ..$getInstanceMethods
 
             def getInstance(document: Document): $className = {
-              null
+              ${getInstanceMethodName(mainType)}(document)
             }
 
             def getDocument(instance: $className): Document = {
