@@ -29,8 +29,9 @@ object MongoCodecProvider {
       getFields(t) map({_.returnType}) filter(isCaseClass)
     }
 
-    def getDocumentMethodName(t:Type) = TermName("getDocument" + t.typeSymbol.name.toString)
-    def getInstanceMethodName(t:Type) = TermName("getInstance" + t.typeSymbol.name.toString)
+    def getMethodName(prefix: String)(t: Type) = TermName(s"get$prefix" + t.typeSymbol.name.toString)
+    def getDocumentMethodName(t:Type) = getMethodName("Document")(t)
+    def getInstanceMethodName(t:Type) = getMethodName("Instance")(t)
 
     def getDocumentMethod(t: c.Type): c.Tree = {
       val methodName = getDocumentMethodName(t)
