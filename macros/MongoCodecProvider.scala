@@ -40,8 +40,8 @@ object MongoCodecProvider {
         case v => q"document.put(${keyName(v.name)}, instance.${v.name})"
       }
 
-      q"""def $methodName(instance: ${t.typeSymbol.asType.name}): Document = {
-            val document = new Document()
+      q"""def $methodName(instance: ${t.typeSymbol.asType.name}): org.bson.Document = {
+            val document = new org.bson.Document()
             ..$putOps
             document
          }
@@ -55,14 +55,14 @@ object MongoCodecProvider {
         val accessor = f.name
         val getterMethodName = getInstanceMethodName(f.returnType)
         val getter = f match {
-          case c if isCaseClass(c.returnType) => q"$getterMethodName(document.get($key).asInstanceOf[Document])"
+          case c if isCaseClass(c.returnType) => q"$getterMethodName(document.get($key).asInstanceOf[org.bson.Document])"
           case v => q"document.get($key).asInstanceOf[${f.returnType}]"
         }
 
         q"$accessor = $getter"
       }
 
-      q"""def $methodName(document: Document): ${t} = {
+      q"""def $methodName(document: org.bson.Document): ${t} = {
             new ${t.resultType}(..$getOps)
          }
        """
@@ -80,11 +80,11 @@ object MongoCodecProvider {
             ..$getDocumentMethods
             ..$getInstanceMethods
 
-            def getInstance(document: Document): $className = {
+            def getInstance(document: org.bson.Document): $className = {
               ${getInstanceMethodName(mainType)}(document)
             }
 
-            def getDocument(instance: $className): Document = {
+            def getDocument(instance: $className): org.bson.Document = {
               ${getDocumentMethodName(mainType)}(instance)
             }
             override def getEncoderClass: Class[$className] = classOf[$className]
