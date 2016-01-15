@@ -26,7 +26,7 @@ object MongoCodecProvider {
     }
 
     def getCaseClasses(t: Type): List[Type] = {
-      getFields(t) map({_.returnType}) filter(isCaseClass)
+      getFields(t).map(_.returnType).flatMap({t :: getCaseClasses(_)})
     }
 
     def getMethodName(prefix: String)(t: Type) = TermName(s"get$prefix" + t.typeSymbol.name.toString)
