@@ -8,9 +8,9 @@ import scala.language.experimental.macros
 
 object MongoCodecProvider {
 
-  def getCodec[T](): Any = macro MongoCodecProvider.getCodecImpl[T]
+  def getCodec[T](): Codec[T] = macro MongoCodecProvider.getCodecImpl[T]
 
-  def getCodecImpl[T: c.WeakTypeTag](c: whitebox.Context)(): c.Expr[Any] = {
+  def getCodecImpl[T: c.WeakTypeTag](c: whitebox.Context)(): c.Expr[Codec[T]] = {
     import c.universe._
 
     val mainType = weakTypeOf[T]
@@ -21,13 +21,9 @@ object MongoCodecProvider {
       case m: MethodSymbol if m.isGetter && m.isPublic => m
     } toList
 
-    def isCaseClass(t: Type): Boolean = {
-      t.typeSymbol.isClass && t.typeSymbol.asClass.isCaseClass
-    }
+    def isCaseClass(t: Type): Boolean = t.typeSymbol.isClass && t.typeSymbol.asClass.isCaseClass
 
-    def getCaseClasses(t: Type): List[Type] = {
-      getFields(t).map(_.returnType).flatMap({t :: getCaseClasses(_)})
-    }
+    def getCaseClasses(t: Type): List[Type] = getFields(t).map(_.returnType).flatMap({t :: getCaseClasses(_)})
 
     def getMethodName(prefix: String)(t: Type) = TermName(s"get$prefix" + t.typeSymbol.name.toString)
     def getDocumentMethodName(t:Type) = getMethodName("Document")(t)
@@ -75,7 +71,7 @@ object MongoCodecProvider {
 
     val className = mainType.typeSymbol.name.toTypeName
 
-    c.Expr[Any](
+    c.Expr[Codec[T]](
       q""" new BaseCodec[$className]() {
             ..$getDocumentMethods
             ..$getInstanceMethods
